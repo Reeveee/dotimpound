@@ -1,0 +1,542 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>San Andreas DOT | Operations</title><link rel="stylesheet" href="style.css?v=43531"></head><body class="adminbody impound-redesign">
+<header class="app-topbar">
+  <div class="portal-brand"><div class="towmark">▰<span>↗</span></div><div><b>SA DOT</b><small>TOW &amp; IMPOUND</small></div></div>
+  <div class="global-search">⌕ <input placeholder="Search vehicles, plates, tow requests, impound IDs..." oninput="dashboardSearch(this.value)"></div>
+  <button id="cadAudioBtn" class="cad-audio-toggle" type="button" onclick="toggleCadAudio()" title="Toggle CAD notification audio"><span id="cadAudioIcon">🔊</span><b>CAD AUDIO</b><small id="cadAudioState">ON</small></button>
+  <div class="operator-wrap">
+    <button class="operator-card operator-profile-button" onclick="toggleProfileMenu(event)" aria-label="Open operator profile"><div class="operator-avatar"><span class="dot-avatar-road">↗</span></div><div><b id="who">DOT</b><small><span id="whoRole">OPERATOR</span></small></div><span class="profile-caret">⌄</span></button>
+    <div id="profileMenu" class="profile-menu hidden">
+      <div class="profile-head"><div class="operator-avatar large"><span class="dot-avatar-road">↗</span></div><div><b id="profileName">DOT</b><small id="profileDisplayName">SA DOT OPERATOR</small></div></div>
+      <button class="profile-action profile-account" onclick="openAccountPanel()">▣ &nbsp; ACCOUNT</button>
+      <button class="profile-logout" onclick="logout()">LOG OUT</button>
+    </div>
+  </div>
+</header>
+<aside class="app-sidebar">
+  <button class="side-tab active" data-tab="dashboard" onclick="switchTab('dashboard')"><span>⌂</span>DASHBOARD</button>
+  <button class="side-tab" data-tab="tows" onclick="switchTab('tows')"><span>▣</span>TOW REQUESTS <em id="towBadge">0</em></button>
+  <button class="side-tab" data-tab="roadside" onclick="switchTab('roadside')"><span>⚒</span>ROADSIDE ASSIST <em id="roadsideBadge">0</em></button>
+  <button class="side-tab" data-tab="closures" onclick="switchTab('closures')"><span>⛔</span>ROAD CLOSURES <em id="closureBadge">0</em></button>
+  <button class="side-tab" data-tab="vehicles" onclick="switchTab('vehicles')"><span>▰</span>IMPOUNDS</button>
+  <button class="side-tab" data-tab="payments" onclick="switchTab('payments')"><span>⌕</span>VEHICLE RELEASES</button>
+  <button class="side-tab" data-tab="checklist" onclick="switchTab('checklist')"><span>✓</span>VEHICLE CHECKLIST</button>
+  <button class="side-tab" data-tab="discord" onclick="switchTab('discord')"><span>◫</span>DISCORD REPORT</button>
+  <button id="membersTab" class="side-tab" data-tab="members" onclick="switchTab('members')"><span>♙</span>STAFF</button>
+  <button class="side-tab" data-tab="sop" onclick="switchTab('sop')"><span>▤</span>SOP</button>
+  <a class="side-tab leo-link" href="police.html"><span>★</span>LEO MENU</a>
+  <div class="sidebar-foot"><i></i><b>DOT SYSTEM ONLINE</b><small>San Andreas Operations</small></div>
+</aside>
+<main class="impound-page app-content">
+  <section id="dashboardPanel" class="dashboard-panel">
+    <div class="dash-hero"><div><div class="eyebrow">SAN ANDREAS DOT OPERATIONS</div><h1>Welcome back, <span id="dashName">Operator</span>.</h1><p>Here’s what needs your attention right now.</p></div><div class="dash-clock"><b id="dashTime">--:--</b><span id="dashDate">--</span></div></div>
+    <div id="dashStats" class="dash-stats"></div>
+    <div class="dash-grid">
+      <section class="dash-card dash-requests"><div class="dash-card-head"><div><small>LIVE OPERATIONS</small><h2>Active Tow Requests</h2></div><button onclick="switchTab('tows')">VIEW ALL →</button></div><div id="dashTowList"></div></section>
+      <section class="dash-card dash-map-card postal-map-card"><div class="dash-card-head"><div><small>POSTAL DISPATCH TRACKER</small><h2>Live Requests Map</h2></div><span class="map-live"><i></i> POSTAL LINK</span></div><div class="postal-toolbar"><div><small>JUMP TO POSTAL</small><div class="postal-search"><input id="postalPreviewInput" maxlength="5" placeholder="e.g. 9338" onkeydown="if(event.key==='Enter')previewPostal()"><button onclick="previewPostal()">LOCATE</button></div></div><div class="postal-zone-readout"><small>MAP SECTOR</small><b id="postalSector">LOS SANTOS · 9000's</b></div></div><div class="sa-map postal-map" id="requestMap"><div class="postal-map-viewport" id="postalMapViewport"><div class="postal-map-stage" id="postalMapStage"><img id="postalMapImage" class="postal-map-image" src="assets/maps/postal-full-highres.png" alt="San Andreas high resolution postal dispatch map"><div id="mapPins"></div></div></div><div class="postal-grid"></div><div class="postal-map-controls"><button id="postalZoomIn" title="Zoom in">+</button><button id="postalZoomOut" title="Zoom out">−</button><button id="postalReset" title="Reset map">⌂</button></div><div class="postal-map-corner"><b id="postalFocusTitle">DISPATCH OVERVIEW</b><span id="postalFocusSub">Click a marker or enter a postal to focus the map.</span></div><div class="map-legend"><span><i class="red"></i>Waiting</span><span><i class="amber"></i>Responding</span><span><i class="green"></i>On Scene</span><span><i class="closure-key"></i>Road Closure</span></div></div></section>
+      <section class="dash-card dash-yard"><div class="dash-card-head"><div><small>IMPOUND CONTROL</small><h2>Yard Attention</h2></div><button onclick="switchTab('vehicles')">OPEN YARD →</button></div><div id="dashYardList"></div></section>
+      <section class="dash-card dash-activity"><div class="dash-card-head"><div><small>SYSTEM LOG</small><h2>Recent Activity</h2></div></div><div id="dashActivity"></div></section>
+    </div>
+  </section>
+
+  <div id="legacyCounters" class="hidden"><span id="activeCount">0</span><span id="paidCount">0</span><span id="collected">$0</span><input id="search"></div>
+  <section id="vehiclePanel">
+    <div class="impound-titlebar">
+      <div><h1>Impound Yard</h1><p>Manage all impounded vehicles, payments and releases.</p></div>
+      <div id="impoundSummary" class="impound-summary"></div>
+    </div>
+    <div class="impound-toolbar screenshot-toolbar">
+      <div class="impound-search"><span>⌕</span><input id="impoundSearch" placeholder="Search by plate, make, model or impound ID..." oninput="render()"></div>
+      <select id="impoundStatus" onchange="render()"><option value="ALL">All Statuses</option><option value="UNPAID">Awaiting Payment</option><option value="PAID">Ready for Release</option><option value="RELEASED">Released</option></select>
+      <select id="impoundLot" onchange="render()"><option value="ALL">All Lots</option><option>Sandy Shores Impound</option><option>Los Santos Impound</option><option>Paleto Bay Impound</option><option>Davis Impound</option></select>
+      <select id="impoundSort" onchange="render()"><option value="NEW">Newest First</option><option value="OLD">Oldest First</option><option value="FEE">Highest Fee</option></select>
+      <button class="add-impound" onclick="openModal()">＋ &nbsp; Add Impound</button>
+    </div>
+    <div class="impound-list-head"><span></span><span>VEHICLE</span><span>PLATE</span><span>MAKE / MODEL</span><span>COLOUR</span><span>STATUS</span><span>IMPOUND LOT</span><span>DATE &amp; TIME</span><span>FEE</span><span>ACTIONS</span></div>
+    <div id="vehicleRows" class="impound-list"></div>
+  </section>
+  <section id="closurePanel" class="hidden secondary-panel"><div class="section-title"><h1>Road Closure Requests</h1><p>Law enforcement requests for DOT traffic control and road closures.</p></div><div id="closureRows" class="closure-grid"></div></section>
+  <section id="towPanel" class="hidden secondary-panel"><div class="section-title"><h1>Tow Requests</h1><p>Law enforcement recovery requests.</p></div><div id="offlineDemo" class="tow-demo-banner hidden">OFFLINE DEMO · Sample recovery jobs loaded.</div><div id="towRows" class="tow-card-grid"></div></section>
+
+  <section id="roadsidePanel" class="hidden secondary-panel roadside-page">
+    <div class="section-title roadside-titlebar">
+      <div><div class="eyebrow">SA DOT SAFETY PATROL</div><h1>Roadside Assistance</h1><p>Claim disabled-vehicle calls and perform the roadside work through the operator tablet.</p></div>
+      <div class="roadside-title-actions"><button type="button" class="roadside-standalone-btn" onclick="openStandaloneRoadsideSetup()">＋ WALK-UP ASSIST</button></div>
+    </div>
+    <div class="roadside-layout">
+      <aside class="roadside-queue-card">
+        <div class="roadside-card-head"><div><small>DISPATCH QUEUE</small><b>Assistance Calls</b></div><span id="roadsideQueueCount">0 ACTIVE</span></div>
+        <div id="roadsideQueue" class="roadside-queue"></div>
+        <div class="roadside-history-head"><small>RECENT SERVICE LOG</small></div>
+        <div id="roadsideHistory" class="roadside-history"></div>
+      </aside>
+      <section class="roadside-tablet-shell">
+        <div class="roadside-tablet-camera"></div>
+        <div class="roadside-tablet-top"><div><span class="roadside-online-dot"></span> SA DOT ROADSIDE TABLET</div><div id="roadsideTabletClock">--:--</div></div>
+        <div id="roadsideGameHost" class="roadside-tablet-screen"></div>
+      </section>
+    </div>
+  </section>
+
+  <section id="paymentPanel" class="hidden secondary-panel release-page">
+    <div class="release-hero"><div><div class="eyebrow">SA DOT COLLECTION DESK</div><h1>Vehicle Releases</h1><p>Vehicles cleared for collection from San Andreas DOT impound facilities.</p></div><div class="release-lot">● &nbsp; SANDY SHORES IMPOUND<small>Primary release facility</small></div></div>
+    <div id="releaseStats" class="release-stats"></div>
+    <div class="release-toolbar"><div class="impound-search"><span>⌕</span><input id="releaseSearch" placeholder="Search plate, make, model or impound ID..." oninput="renderReleases()"></div><select id="releaseLot" onchange="renderReleases()"><option value="ALL">All Lots</option><option>Sandy Shores Impound</option><option>Los Santos Impound</option><option>Paleto Bay Impound</option><option>Davis Impound</option></select></div>
+    <div class="release-layout"><div><div class="release-list-head"><span>VEHICLE</span><span>PLATE</span><span>MAKE / MODEL</span><span>COLOUR</span><span>PAID</span><span>FEE</span><span></span></div><div id="releaseRows" class="release-list"></div></div><aside id="releaseDetail" class="release-detail"><div class="release-empty">Select a vehicle ready for collection.</div></aside></div>
+  </section>
+
+  <section id="checklistPanel" class="hidden secondary-panel checklist-page">
+    <div class="section-title checklist-titlebar">
+      <div>
+        <div class="eyebrow">SA DOT FLEET SAFETY</div>
+        <h1>Vehicle Checklist</h1>
+        <p>Interactive pre-shift vehicle inspection. Run system checks, mark each item and sign the unit into service.</p>
+      </div>
+      <button class="checklist-next" type="button" onclick="focusNextInspection()">NEXT UNCHECKED →</button>
+    </div>
+
+    <div class="tablet-shell">
+      <div class="tablet-top">
+        <div><span class="tablet-led"></span> SA DOT FLEET TABLET <span class="tablet-session" id="inspectionSessionState">STANDBY</span></div>
+        <div id="checklistClock">--:--</div>
+      </div>
+
+      <div class="tablet-screen">
+        <div class="inspection-header">
+          <div>
+            <small>PRE-SHIFT INSPECTION</small>
+            <h2 id="inspectionTitle">UNIT SAFETY CHECK</h2>
+            <span id="inspectionOperator">Operator: —</span>
+          </div>
+
+          <div class="inspection-progress-wrap">
+            <div class="inspection-progress">
+              <div class="progress-ring" id="progressRing"><b id="progressNumber">0%</b></div>
+              <small id="progressText">0 / 10 inspected</small>
+            </div>
+            <div class="inspection-mini-status">
+              <span><i class="mini-dot tested-dot"></i><b id="testedCount">0</b> TESTED</span>
+              <span><i class="mini-dot pass-dot"></i><b id="passCount">0</b> PASS</span>
+              <span><i class="mini-dot issue-dot"></i><b id="issueCount">0</b> ISSUE</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="unit-fields">
+          <label>SIGNED-IN UNIT
+            <input id="checkUnit" placeholder="Auto-filled from signed-in operator" oninput="saveChecklistDraft();updateInspectionSession()" readonly>
+          </label>
+          <label>VEHICLE / MODEL
+            <select id="checkVehicle" onchange="saveChecklistDraft();updateInspectionSession()">
+              <option value="">SELECT DOT VEHICLE...</option>
+              <option>DOT Pickup</option>
+              <option>DOT Heavy Pickup</option>
+              <option>DOT Flatbed</option>
+              <option>DOT Heavy Flatbed</option>
+              <option>DOT Commercial Flatbed</option>
+              <option>DOT Large Flatbed</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="inspection-instructions" id="inspectionInstructions">
+          <div class="instruction-pulse">●</div>
+          <div>
+            <b>HOW TO USE THE TABLET</b>
+            <span>Run checks manually, or use AUTO WALKAROUND to test each system, mark PASS and move to the next step automatically.</span>
+          </div>
+          <button id="walkaroundBtn" type="button" onclick="runWalkaroundSequence()">AUTO WALKAROUND</button>
+        </div>
+
+
+        <div class="checklist-modebar">
+          <div>
+            <b>INSPECTION MODE</b>
+            <span id="modeHelper">One check at a time. Less clutter, same inspection.</span>
+          </div>
+          <div class="mode-switch">
+            <button id="guidedModeBtn" class="active" type="button" onclick="setChecklistMode('guided')">GUIDED</button>
+            <button id="overviewModeBtn" type="button" onclick="setChecklistMode('overview')">OVERVIEW</button>
+          </div>
+        </div>
+
+        <section id="guidedInspection" class="guided-inspection">
+          <div class="guided-route" id="guidedRoute"></div>
+
+          <div class="guided-card" id="guidedCard">
+            <div class="guided-step-side">
+              <span class="guided-step-no" id="guidedStepNo">01</span>
+              <div class="guided-big-icon" id="guidedIcon">◉</div>
+              <small id="guidedStepCount">STEP 1 OF 10</small>
+            </div>
+
+            <div class="guided-main">
+              <div class="guided-kicker" id="guidedKicker">START HERE</div>
+              <h3 id="guidedTitle">TYRES &amp; WHEELS</h3>
+              <p id="guidedDesc">Condition, pressure and wheel security</p>
+
+              <div class="guided-tip">
+                <span>WHAT TO CHECK</span>
+                <b id="guidedTip">Walk around the unit and check tyre condition, obvious pressure issues and wheel security.</b>
+              </div>
+
+              <div id="guidedDiagnosticHost" class="guided-diagnostic-host"></div>
+
+              <div class="guided-actions">
+                <button id="guidedTestBtn" class="guided-test" type="button" onclick="runCurrentGuidedTest()">▶ RUN TEST</button>
+                <button id="guidedPassBtn" class="guided-pass" type="button" onclick="setGuidedInspection('pass')">✓ PASS &amp; NEXT</button>
+                <button id="guidedIssueBtn" class="guided-issue" type="button" onclick="setGuidedInspection('issue')">! ISSUE &amp; NEXT</button>
+              </div>
+
+              <div class="guided-nav">
+                <button id="guidedPrevBtn" type="button" onclick="moveGuidedStep(-1)">← PREVIOUS</button>
+                <div class="guided-momentum">
+                  <b id="guidedMomentum">TEN QUICK CHECKS</b>
+                  <span id="guidedMomentumSub">Take them one at a time.</span>
+                </div>
+                <button id="guidedNextBtn" type="button" onclick="moveGuidedStep(1)">NEXT →</button>
+              </div>
+            </div>
+
+            <aside class="guided-truck-panel" aria-label="Animated DOT vehicle diagnostic visual">
+              <div class="guided-truck-head">
+                <div><small>VEHICLE VISUAL</small><b id="miniTruckTitle">DOT UNIT</b><span id="miniTruckVariantBadge" class="mini-truck-vehicle-badge">STANDARD PICKUP</span></div>
+                <span id="miniTruckState">READY</span>
+              </div>
+
+              <div class="mini-truck-stage checklist-3d-stage">
+                <iframe id="checklistVehicle3D" class="checklist-vehicle-3d" src="assets/checklist-vehicle.html?v=43524" title="Interactive SA DOT checklist vehicle" loading="eager"></iframe>
+              </div>
+
+              <div class="guided-truck-foot">
+                <span id="miniTruckSystem">AWAITING TEST</span>
+                <i></i>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <div id="inspectionOverview" class="inspection-overview hidden">
+          <div class="overview-head">
+            <div><b>FULL CHECKLIST</b><span>Jump around or review everything at once.</span></div>
+            <button type="button" onclick="focusNextInspection()">GO TO NEXT UNCHECKED →</button>
+          </div>
+          <div id="inspectionGrid" class="inspection-grid"></div>
+        </div>
+
+        <div id="inspectionCompleteBanner" class="inspection-complete-banner hidden">
+          <div class="complete-scan"></div>
+          <span>✓</span>
+          <div><b>SAFETY CHECK COMPLETE</b><small id="inspectionCompleteSub">Unit ready to be filed.</small></div>
+        </div>
+
+        <div class="inspection-footer">
+          <div id="checklistMessage"><b>INSPECTION INCOMPLETE</b><span>Inspect each system to continue.</span></div>
+          <button id="completeChecklist" class="complete-inspection" onclick="completeVehicleChecklist()" disabled>LOCK &amp; FILE INSPECTION →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="discordPanel" class="hidden secondary-panel discord-report-page">
+    <div class="section-title discord-titlebar">
+      <div>
+        <div class="eyebrow">SA DOT OPERATIONS</div>
+        <h1>Discord Report</h1>
+        <p>Choose a report type to begin building a Discord-ready report template.</p>
+      </div>
+    </div>
+
+    <div class="discord-tablet-shell">
+      <div class="discord-tablet-camera"></div>
+      <div class="discord-tablet-screen">
+        <div class="discord-report-intro">
+          <div>
+            <small>TEMPLATE GENERATOR</small>
+            <b>SELECT REPORT TYPE</b>
+            <span>Pick the report you need. The generator will be built around these workflows.</span>
+          </div>
+          <div class="discord-live-pill"><i></i> REPORT SYSTEM</div>
+        </div>
+
+        <div class="discord-report-menu">
+          <button class="discord-report-card towing" type="button" onclick="selectDiscordReportType('towing')">
+            <div class="discord-card-number">01</div>
+            <div class="discord-card-icon">⌁</div>
+            <div class="discord-card-copy">
+              <small>DOT OPERATIONS</small>
+              <h2>DOT Towing Report</h2>
+              <p>Create a formatted report for DOT towing and recovery activity.</p>
+            </div>
+            <span class="discord-card-arrow">OPEN →</span>
+          </button>
+
+          <button class="discord-report-card sign" type="button" onclick="selectDiscordReportType('sign')">
+            <div class="discord-card-number">02</div>
+            <div class="discord-card-icon">▤</div>
+            <div class="discord-card-copy">
+              <small>SIGN TRUCK</small>
+              <h2>DOT Truck Incident Report</h2>
+              <p>Create a guided incident report for DOT truck and traffic-control operations.</p>
+            </div>
+            <span class="discord-card-arrow">OPEN →</span>
+          </button>
+
+          <button class="discord-report-card road disabled" type="button" disabled aria-disabled="true">
+            <div class="discord-card-number">03</div>
+            <div class="discord-card-icon">⊘</div>
+            <div class="discord-card-copy">
+              <small>ROAD OPERATIONS</small>
+              <h2>DOT Road Closure Report</h2>
+              <p>Road closure report generator.</p>
+            </div>
+            <span class="discord-card-arrow">LOCKED</span>
+          </button>
+        </div>
+
+        <div id="discordGeneratorPreview" class="discord-generator-preview hidden">
+          <button class="discord-back" type="button" onclick="clearDiscordReportType()">← REPORT TYPES</button>
+          <div class="discord-generator-status">
+            <small>SELECTED TEMPLATE</small>
+            <h2 id="discordGeneratorTitle">DOT Towing Report</h2>
+            <p id="discordGeneratorText">Build a Discord-ready towing report, step by step, then export it as an image.</p>
+          </div>
+
+          <div id="discordTowingBuilder" class="discord-builder hidden">
+            <div class="discord-builder-shell">
+              <div class="discord-builder-head">
+                <div>
+                  <small>REPORT WORKFLOW</small>
+                  <h3>DOT Towing Report Builder</h3>
+                </div>
+                <div class="discord-builder-progress"><span id="discordStepCounter">STEP 1 / 9</span><div class="discord-progress-bar"><i id="discordProgressFill"></i></div></div>
+              </div>
+
+              <div class="discord-identity-row">
+                <label>
+                  <span>Signed In User</span>
+                  <div id="discordSignedInUser" class="discord-identity-pill">dot2</div>
+                </label>
+                <label>
+                  <span>DOT Operator Name</span>
+                  <input id="reportOperatorName" type="text" placeholder="O. Smith">
+                </label>
+                <label>
+                  <span>Date</span>
+                  <input id="reportDate" type="text" placeholder="MM/DD/YYYY">
+                </label>
+              </div>
+
+              <div class="discord-builder-body">
+                <div class="discord-builder-form">
+                  <div class="discord-step-workflow">
+                    <div>
+                      <small>TABLET WORKFLOW</small>
+                      <b id="discordSectionLabel">Driver Information</b>
+                    </div>
+                    <span id="discordSectionHint">Fill in each section, then continue to the next stage.</span>
+                    <div class="discord-workflow-stats">
+                      <div class="discord-workflow-stat">
+                        <small>Completion</small>
+                        <b id="discordStepPercent">11%</b>
+                      </div>
+                      <div class="discord-workflow-stat">
+                        <small>Section</small>
+                        <b id="discordSectionIndex">1 / 9</b>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="discord-step-tabs" id="discordStepTabs"></div>
+                  <div id="discordStepContent" class="discord-step-content"></div>
+                  <div class="discord-step-actions">
+                    <button type="button" class="discord-nav secondary" id="discordPrevBtn" onclick="prevDiscordReportStep()">← Previous</button>
+                    <button type="button" class="discord-nav" id="discordNextBtn" onclick="nextDiscordReportStep()">Next →</button>
+                  </div>
+                </div>
+
+                <div class="discord-builder-preview">
+                  <div class="discord-preview-card preview-tablet-card">
+                    <div class="discord-preview-head">
+                      <div>
+                        <small>LIVE PREVIEW</small>
+                        <b>Discord Report Output</b>
+                      </div>
+                      <div class="discord-preview-tools">
+                        <button type="button" id="discordPreviewCopyBtn" class="discord-preview-tool copy-all" onclick="copyDiscordPreviewAll()">Copy All</button>
+                        <button type="button" id="discordPreviewRefreshBtn" class="discord-preview-tool" onclick="manualDiscordPreviewRefresh()">Refresh Preview</button>
+                        <button type="button" id="discordPreviewAutoBtn" class="discord-preview-tool active" onclick="toggleDiscordAutoPreview()">Auto Preview: ON</button>
+                      </div>
+                    </div>
+                    <p class="discord-preview-copy">Auto-sync waits for a short pause before refreshing, so the preview stays useful without constantly flashing while you type.</p>
+                    <div class="discord-preview-tablet">
+                      <div class="discord-preview-tablet-bar"><i></i><span id="discordPreviewStatus">AUTO-SYNC ACTIVE</span></div>
+                      <div id="discordTypePreview" class="discord-type-preview"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="discord-preview-card export-card">
+                  <div class="discord-preview-head">
+                    <div>
+                      <small>EXPORT</small>
+                      <b>Generate Discord Image</b>
+                    </div>
+                  </div>
+                  <p class="discord-export-copy">When you finish the form, generate a clean report image that can be pasted into Discord.</p>
+                  <div class="discord-report-style-picker">
+                    <button type="button" class="report-style-card active" data-report-style="operations" onclick="setReportStyle('operations')"><i class="style-swatch operations"></i><span><b>Dispatch Board</b><small>Compact SA DOT incident-card report</small></span></button>
+                    <button type="button" class="report-style-card" data-report-style="highway" onclick="setReportStyle('highway')"><i class="style-swatch highway"></i><span><b>Highway Board</b><small>Same compact layout in field-operations colours</small></span></button>
+                  </div>
+                  <div class="discord-export-actions">
+                    <button type="button" class="discord-export-btn" onclick="generateTowingReportImage()">Generate Report Image</button>
+                    <a id="discordDownloadLink" class="discord-download-link hidden" download="sadot-towing-report.png">Download PNG</a>
+                  </div>
+                  <div id="discordExportMeta" class="discord-export-meta hidden">Report image generated successfully.</div>
+                  <img id="discordExportPreview" class="discord-export-preview hidden" alt="Generated report preview">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="discordSignBuilder" class="discord-builder hidden">
+            <div class="discord-builder-shell truck-incident-builder">
+              <div class="discord-builder-head">
+                <div>
+                  <small>REPORT WORKFLOW</small>
+                  <h3>DOT Truck Incident Report</h3>
+                </div>
+                <div class="discord-builder-progress"><span id="signStepCounter">STEP 1 / 5</span><div class="discord-progress-bar"><i id="signProgressFill"></i></div></div>
+              </div>
+
+              <div class="discord-builder-body">
+                <div class="discord-builder-form">
+                  <div class="discord-step-workflow">
+                    <div>
+                      <small>TABLET WORKFLOW</small>
+                      <b id="signSectionLabel">Date & Time</b>
+                    </div>
+                    <span id="signSectionHint">System date and time are filled automatically.</span>
+                    <div class="discord-workflow-stats">
+                      <div class="discord-workflow-stat"><small>Completion</small><b id="signStepPercent">20%</b></div>
+                      <div class="discord-workflow-stat"><small>Section</small><b id="signSectionIndex">1 / 5</b></div>
+                    </div>
+                  </div>
+                  <div class="discord-step-tabs" id="signStepTabs"></div>
+                  <div id="signStepContent" class="discord-step-content"></div>
+                  <div class="discord-step-actions">
+                    <button type="button" class="discord-nav secondary" id="signPrevBtn" onclick="prevSignReportStep()">← Previous</button>
+                    <button type="button" class="discord-nav" id="signNextBtn" onclick="nextSignReportStep()">Continue →</button>
+                  </div>
+                </div>
+
+                <div class="discord-builder-preview">
+                  <div class="discord-preview-card preview-tablet-card">
+                    <div class="discord-preview-head">
+                      <div><small>FEED PREVIEW</small><b>Truck Incident Report</b></div>
+                      <div class="discord-preview-tools">
+                        <button type="button" id="signPreviewCopyBtn" class="discord-preview-tool copy-all" onclick="copySignPreviewAll()">Copy All</button>
+                        <button type="button" class="discord-preview-tool" onclick="renderSignPreview('type')">Refresh Preview</button>
+                      </div>
+                    </div>
+                    <p class="discord-preview-copy">The feed preview updates after you pause typing and stays in place while you work through the report.</p>
+                    <div class="discord-preview-tablet">
+                      <div class="discord-preview-tablet-bar"><i></i><span id="signPreviewStatus">REPORT FEED READY</span></div>
+                      <div id="signTypePreview" class="discord-type-preview"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="discord-preview-card export-card sign-export-card">
+                  <div class="discord-preview-head"><div><small>EXPORT</small><b>Generate Truck Incident Image</b></div></div>
+                  <p class="discord-export-copy">Finish the report, then generate a compact SA DOT incident card ready for Discord.</p>
+                  <div class="discord-export-actions">
+                    <button type="button" class="discord-export-btn" onclick="generateTruckIncidentReportImage()">Generate Report Image</button>
+                    <a id="signDownloadLink" class="discord-download-link hidden" download="sadot-truck-incident-report.png">Download PNG</a>
+                  </div>
+                  <div id="signExportMeta" class="discord-export-meta hidden">Truck incident report image generated successfully.</div>
+                  <img id="signExportPreview" class="discord-export-preview hidden" alt="Generated DOT truck incident report preview">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="accountPanel" class="hidden secondary-panel account-page">
+  <div class="section-title account-titlebar"><div><div class="eyebrow">SA DOT OPERATOR SYSTEM</div><h1>Account</h1><p>Your operator profile, saved inspections and generated Discord reports.</p></div></div>
+  <div class="account-tablet-shell">
+    <div id="accountTabletBoot" class="account-tablet-boot hidden"><div class="account-boot-logo">SA DOT</div><b>OPERATOR TABLET</b><span>Loading secure account workspace...</span><div class="account-boot-bar"><i></i></div></div>
+    <div class="account-tablet-camera"></div>
+    <div class="account-tablet-screen">
+      <div class="account-desktop-head"><div><small>SA DOT OPERATOR DESKTOP</small><b id="accountDesktopUser">DOT</b></div><span><i></i> SECURE SESSION</span></div>
+      <div class="account-folder-grid">
+        <button class="account-folder" onclick="openAccountFolder('checklists')"><span class="folder-icon"><i></i></span><b>Past Checklists</b><small id="accountChecklistCount">0 files</small></button>
+        <button class="account-folder" onclick="openAccountFolder('reports')"><span class="folder-icon reports"><i></i></span><b>Past Reports</b><small id="accountReportCount">0 files</small></button>
+        <button class="account-folder" onclick="openAccountFolder('profile')"><span class="folder-icon profile"><i></i></span><b>Operator Profile</b><small>Report defaults</small></button>
+      </div>
+      <div id="accountFolderWindow" class="account-folder-window hidden"><div class="account-window-bar"><button type="button" onclick="closeAccountFolder()">← Desktop</button><div><b id="accountFolderTitle">Folder</b><span id="accountFolderPath">C:/SADOT/ACCOUNT</span></div><i></i></div><div id="accountFolderContent" class="account-folder-content"></div></div>
+    </div>
+  </div>
+</section>
+
+  <section id="sopPanel" class="hidden secondary-panel sop-dashboard-panel">
+    <div class="section-title sop-dashboard-titlebar">
+      <div>
+        <div class="eyebrow">SA DOT POLICY LIBRARY</div>
+        <h1>Standard Operating Procedures</h1>
+        <p>Department policy is now available directly inside the operator dashboard.</p>
+      </div>
+      <div class="sop-dashboard-status"><i></i><span>ACTIVE SOP</span><b>OPERATOR REFERENCE</b></div>
+    </div>
+    <div class="sop-dashboard-frame">
+      <div class="sop-shell sop-embedded-shell">
+<aside class="sop-sidebar"><div class="sop-side-head"><span>DOT / TOW DIVISION</span><b>STANDARD OPERATING<br>PROCEDURES</b></div><div class="sop-rule"></div><nav class="sop-nav"><a href="#dash-s1"><span>01</span>Purpose</a><a href="#dash-s2"><span>02</span>Mission Statement</a><a href="#dash-s3"><span>03</span>Chain of Command</a><a href="#dash-s5"><span>05</span>Vehicle Guidelines</a><a href="#dash-s6"><span>06</span>Dispatch &amp; Response</a><a href="#dash-s7"><span>07</span>Scene Operations</a><a href="#dash-s8"><span>08</span>Towing Guidelines</a><a href="#dash-s9"><span>09</span>Roadside Assistance</a><a href="#dash-s10"><span>10</span>Conduct</a><a href="#dash-s11"><span>11</span>Reports and Logs</a><a href="#dash-s12"><span>12</span>Disciplinary Action</a><a href="#dash-s13"><span>13</span>Conclusion</a></nav><div class="sop-side-foot">SAN ANDREAS<br><b>DEPARTMENT OF TRANSPORTATION</b></div></aside>
+<article class="sop-document"><div class="sop-cover"><div class="sop-doc-seal">SA<span>DOT</span></div><div><div class="eyebrow">OFFICIAL DEPARTMENT DOCUMENT</div><h1>Department of Transportation / Tow Truck Division – Standard Operating Procedure (SOP)</h1><div class="sop-meta"><span>DEPARTMENTAL POLICY</span><span>ACTIVE SOP</span></div></div></div>
+<section id="dash-s1" class="sop-section"><h2><span>01</span>1. Purpose</h2><p>The purpose of this SOP is to establish uniform procedures, expectations, and professional standards for all members of the Department of Transportation (DOT) and Tow Truck Division within the State of San Andreas.</p></section>
+<section id="dash-s2" class="sop-section"><h2><span>02</span>2. Mission Statement</h2><p>To maintain public safety and roadway efficiency by providing towing services, roadside assistance, traffic control, and public service operations with professionalism, respect, and integrity.</p></section>
+<section id="dash-s3" class="sop-section"><h2><span>03</span>3. Chain of Command</h2><ol class="command-list"><li>Director of Transportation </li><li>Assistant Director of DOT </li><li>Crew Chief </li><li>DOT Master Operator </li><li>DOT Senior Operator </li><li>DOT Operator </li><li>Road Side Assistant Operator  </li></ol><p>All members are required to follow the chain of command when reporting incidents, requesting assistance, addressing maintenance issues, or handling disciplinary matters.</p></section>
+<section id="dash-s5" class="sop-section"><h2><span>05</span>5. Vehicle Guidelines</h2><ul><li>All DOT vehicles must display proper department markings and emergency lighting.</li><li>Emergency lights may only be used while responding to scenes, clearing hazards, or conducting traffic control.</li><li>Reckless driving, excessive speeding, or misuse of sirens/lights is prohibited.</li><li>Vehicle inspections must be completed before and after each shift.</li><li>Any damages or malfunctions must be reported immediately.</li></ul></section>
+<section id="dash-s6" class="sop-section"><h2><span>06</span>6. Dispatch &amp; Response</h2><ul><li>Channel 6 will be the dedicated radio channel for DOT</li><li>All active calls must be announced over the department radio.</li><li>Operators are authorized to patrol the entire state for disabled vehicles and roadway hazards.</li><li>Priority response calls include:</li><li>Law Enforcement tow requests</li><li>Blocked roadways</li><li>Traffic hazards</li><li>Major accidents</li><li>Vehicle owners or law enforcement must authorize all tows.</li><li class="sop-alert">Law Enforcement vehicles may never be towed without permission from the ranking officer on scene or authorized supervisor!</li></ul></section>
+<section id="dash-s7" class="sop-section"><h2><span>07</span>7. Scene Operations</h2><ul><li>Park tow vehicles in a safe and visible location.</li><li>Activate warning lights when working roadside scenes.</li><li>Establish traffic control using cones, barriers, or vehicle placement.</li><li>Maintain communication with all units on scene.</li><li>Safety of officers, civilians, EMS, and operators is the top priority.</li><li>Take photographs or log evidence when necessary for roleplay documentation.</li></ul></section>
+<section id="dash-s8" class="sop-section"><h2><span>08</span>8. Towing Guidelines</h2><ul><li>Operators must log:</li><li>Vehicle plate number</li><li>Vehicle description</li><li>Location</li><li>Reason for tow</li><li>Vehicles must be delivered to the Impound Lot or designated storage area.</li><li>Impound reports must include:</li><li>Vehicle ID</li><li>Date/Time</li><li>Reason for impound</li><li>Operator name</li></ul></section>
+<section id="dash-s9" class="sop-section"><h2><span>09</span>9. Roadside Assistance</h2><p>DOT may respond to the following service calls:</p><ul><li>Vehicle breakdowns (engine failure, flat tire, no fuel, dead battery)</li><li>Road debris or roadway hazards</li><li>Traffic signal/sign malfunctions</li><li>Road closures</li><li>Accident recovery assistance</li></ul><p>All operators must act professionally, respectfully, and verify caller information before providing service.</p></section>
+<section id="dash-s10" class="sop-section"><h2><span>10</span>10. Conduct</h2><ul><li>Maintain professionalism at all times.</li><li>Respect civilians, law enforcement, and emergency service personnel.</li><li>No cop-baiting, trolling, random towing, or unrealistic roleplay scenarios.</li><li>Remain in-character while on duty.</li><li>Unauthorized towing, abuse of powers, or griefing will not be tolerated.</li><li>Represent the department in a positive manner at all times.</li></ul></section>
+<section id="dash-s11" class="sop-section"><h2><span>11</span>11. Reports and Logs</h2><p>At the end of each shift or assigned call, operators must submit required logs including:</p><ul><li>Operator name</li><li>Date/Time</li><li>Call type</li><li>Location</li><li>Action taken</li></ul><p>If property damage, escalation, arrests, or complaints occur, a supervisor must be notified immediately.</p></section>
+<section id="dash-s12" class="sop-section"><h2><span>12</span>12. Disciplinary Action</h2><p>Violations of this SOP may result in:</p><ul><li>Verbal Warning</li><li>Written Warning</li><li>Strike</li><li>Termination from DOT / Tow Division</li></ul><p>Punishment severity will depend on the violation and prior disciplinary history.</p></section>
+<section id="dash-s13" class="sop-section"><h2><span>13</span>13. Conclusion</h2><p>Every DOT and Tow Division member represents the safety, professionalism, and efficiency of the State of San Andreas. By following this SOP, all members help ensure fair, realistic, and organized operations for the community.</p></section>
+<div class="sop-end"><span>END OF DOCUMENT</span><b>SAN ANDREAS DOT</b></div></article></div>
+    </div>
+  </section>
+
+<section id="memberPanel" class="hidden secondary-panel"><div class="section-title"><h1>DOT Staff</h1><p>Manage authorised DOT accounts.</p><button class="add-impound" onclick="openMemberModal()">＋ Register Member</button></div><div class="tablewrap"><table><thead><tr><th>USERNAME</th><th>PRIVILEGE</th><th>STATUS</th><th>CREATED</th><th>ACTION</th></tr></thead><tbody id="memberRows"></tbody></table></div></section>
+</main>
+<div id="modal" class="modal hidden"><div class="modalcard"><button class="modalx" onclick="closeModal()">×</button><div class="eyebrow">DOT OPERATIONS</div><h2>CREATE IMPOUND</h2><div class="formgrid"><label>REGISTRATION<input id="plateA" placeholder="SCAT"></label><label>VEHICLE<input id="vehicleA" placeholder="Bravado Buffalo S"></label><label>COLOUR<input id="colourA" placeholder="Red"></label><label>RELEASE FEE<input id="feeA" type="number" value="495"></label><label>REASON<select id="reasonA"><option>Illegal Parking</option><option>Police Impound</option><option>Abandoned Vehicle</option><option>Unsafe Vehicle</option><option>Traffic Offence</option><option>Other</option></select></label><label>IMPOUND LOT<select id="lotA"><option>Sandy Shores Impound</option><option>Los Santos Impound</option><option>Paleto Bay Impound</option></select></label><label class="wide">IMPOUNDED BY<input id="officerA" placeholder="Leave blank to use your DOT username"></label></div><button class="gold" onclick="addImpound()">CREATE ACTIVE IMPOUND →</button></div></div>
+
+<div id="imageLightbox" class="vehicle-lightbox hidden" onclick="lightboxBackdrop(event)"><div class="lightbox-card"><button class="lightbox-close" onclick="closeVehicleLightbox()">×</button><img id="lightboxImage" alt="Vehicle reference"><div class="lightbox-info"><div><b id="lightboxTitle">Vehicle</b><span id="lightboxMeta"></span></div><small>VEHICLE REFERENCE IMAGE</small></div></div></div>
+<div id="releaseModal" class="modal hidden"><div class="modalcard release-modal"><button class="modalx" onclick="closeReleaseModal()">×</button><div class="eyebrow">VEHICLE COLLECTION</div><h2>AUTHORISE RELEASE</h2><div id="releaseModalVehicle" class="release-modal-vehicle"></div><div class="formgrid"><label class="wide">RELEASED TO (CHARACTER NAME)<input id="releasedTo" placeholder="e.g. John Smith"></label><label class="wide">RELEASE NOTES (OPTIONAL)<textarea id="releaseNotes" placeholder="e.g. ID checked, no further issues."></textarea></label></div><div id="releaseError" class="error"></div><button class="release-confirm" onclick="confirmVehicleRelease()">✓ &nbsp; RELEASE VEHICLE</button></div></div>
+<div id="memberModal" class="modal hidden"><div class="modalcard"><button class="modalx" onclick="closeMemberModal()">×</button><div class="eyebrow">ADMINISTRATION</div><h2>REGISTER DOT MEMBER</h2><div class="formgrid"><label>USERNAME<input id="userA" placeholder="dot22" autocomplete="off"></label><label>PASSWORD<input id="passA" type="password" placeholder="Create a password" autocomplete="new-password"></label><label class="wide toggleline"><input id="adminA" type="checkbox"><span><b>ADMIN PRIVILEGES</b><small>Unchecked accounts are Operators. Admins can create/manage DOT members and delete records.</small></span></label></div><div id="memberError" class="error"></div><button class="gold" onclick="addMember()">CREATE DOT ACCOUNT →</button></div></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=43531"></script>
+<script>
+if(location.protocol==='file:'){
+  const mockRows={
+    dot_staff:[{id:'demo-admin',username:'admin',role:'admin',enabled:true,created_at:new Date().toISOString()}],
+    impounds:[],payments:[],tow_requests:[],road_closure_requests:[],vehicle_checklists:[]
+  };
+  function mockQuery(table){
+    const q={
+      select(){return q}, order(){return q}, eq(){return q}, limit(){return q}, insert(){return q}, update(){return q}, delete(){return q},
+      single(){return Promise.resolve({data:(mockRows[table]||[])[0]||null,error:null})},
+      then(resolve){return Promise.resolve({data:mockRows[table]||[],error:null}).then(resolve)}
+    };
+    return q;
+  }
+  window.sb={
+    auth:{
+      getSession:async()=>({data:{session:{user:{id:'demo-admin'},access_token:'local-demo'}}}),
+      signOut:async()=>({error:null})
+    },
+    from:mockQuery,
+    rpc:async()=>({data:null,error:null})
+  };
+}
+</script>
+<script src="admin.js?v=43531"></script></body></html>

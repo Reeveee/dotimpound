@@ -1,0 +1,65 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>San Andreas DOT | LEO Services</title><link rel="stylesheet" href="style.css?v=43530"></head><body class="policebody leo-hub">
+<div id="leoAccessScreen" class="leo-access-screen">
+  <div class="leo-access-terminal">
+    <div class="leo-access-badge">★</div>
+    <div class="eyebrow">SAN ANDREAS LAW ENFORCEMENT NETWORK</div>
+    <h1>LEO ACCESS</h1>
+    <p>Enter the authorised portal code to open SA DOT law-enforcement services.</p>
+    <label>ACCESS CODE<input id="leoAccessCode" type="password" inputmode="text" autocomplete="off" placeholder="ENTER CODE"></label>
+    <div id="leoAccessError" class="leo-access-error"></div>
+    <button type="button" onclick="unlockLeoPortal()">AUTHENTICATE →</button>
+    <small>Authorised law-enforcement access only</small>
+  </div>
+</div>
+<div id="leoAccessBoot" class="leo-boot hidden" aria-live="polite" role="status">
+  <div class="boot-laptop">
+    <div class="boot-terminal-top">
+      <span></span><span></span><span></span>
+      <small>SA-DOT // LAW ENFORCEMENT NETWORK</small>
+    </div>
+    <small class="boot-network">SAN ANDREAS LAW ENFORCEMENT NETWORK</small>
+    <h1>SECURE MOBILE DATA TERMINAL</h1>
+    <div class="boot-console" aria-hidden="true">
+      <div id="leoBootLine1" class="boot-console-line">> AUTHENTICATING CREDENTIALS...</div>
+      <div id="leoBootLine2" class="boot-console-line delayed-one">> VERIFYING LEO ACCESS TOKEN...</div>
+      <div id="leoBootLine3" class="boot-console-line delayed-two">> ESTABLISHING SA DOT SECURE LINK...</div>
+    </div>
+    <div class="boot-line" id="bootText">AUTHENTICATING CREDENTIALS...</div>
+    <div class="boot-bar"><i></i></div>
+    <div class="boot-granted"><b>LEO ACCESS GRANTED</b><span>CONNECTING TO SA DOT SERVICES</span></div>
+    <small class="boot-skip">CLICK OR PRESS ENTER TO SKIP</small>
+  </div>
+</div><header><a class="police-menu-link active-police" href="police.html"><span class="police-shield">★</span><span>LEO<br><b>MENU</b></span></a><div class="brand"><div class="seal">SA</div><div><b>SAN ANDREAS</b><span>DEPARTMENT OF TRANSPORTATION</span></div></div><nav><a href="index.html">PUBLIC PORTAL</a><a href="login.html">DOT LOGIN</a></nav></header><main class="leo-main"><section id="leoHome"><div class="leo-title"><div class="eyebrow">LAW ENFORCEMENT SERVICES</div><h1>DOT REQUEST CENTRE</h1><p>Select the service required. Requests are transmitted directly to San Andreas DOT Operations.</p></div><div class="leo-options"><button onclick="openLeoService('tow')"><i>▰</i><b>REQUEST TOW</b><span>Vehicle recovery, seizure, collision and impound assistance.</span><em>OPEN REQUEST →</em></button><button onclick="openLeoService('closure')"><i>⛔</i><b>REQUEST ROAD CLOSURE</b><span>Request DOT traffic control for incidents, hazards and planned closures.</span><em>OPEN REQUEST →</em></button><button onclick="openLeoService('dmv')"><i>▣</i><b>DMV CHECK</b><span>Check a registration against active DOT impound records.</span><em>RUN PLATE CHECK →</em></button><button onclick="openLeoService('release')"><i>🔑</i><b>VEHICLE RELEASE</b><span>Restricted DOT release terminal for paid vehicles ready for collection.</span><em>OPEN RELEASE TERMINAL →</em></button></div></section><section id="towService" class="hidden"><button class="leo-back" onclick="openLeoService('home')">← LEO SERVICES</button><div class="police-hero compact"><div class="eyebrow">LAW ENFORCEMENT SERVICES</div><h1>REQUEST A DOT TOW</h1><p>Enter the vehicle registration and complete the dispatch request.</p></div><section class="plate-stage"><div class="sa-plate"><div class="plate-screw tl"></div><div class="plate-screw tr"></div><div class="plate-screw bl"></div><div class="plate-screw br"></div><div class="aug">OCT</div><div class="sa-script">San Andreas</div><div class="reg-sticker"><small>CA</small><b>2026</b><span>SA DOT</span></div><input id="policePlate" maxlength="10" placeholder="TYPE PLATE" autocomplete="off"><div class="exempt">SA EXEMPT</div></div></section><section class="police-form-card"><div class="request-head"><div><div class="eyebrow">DOT DISPATCH</div><h2>TOW REQUEST</h2></div><div class="request-status"><span></span> REQUEST FORM ONLINE</div></div><div class="formgrid police-grid"><label>VEHICLE MAKE / MODEL<input id="towVehicle" placeholder="e.g. Bravado Buffalo S"></label><label>COLOUR<input id="towColour" placeholder="e.g. White"></label><label>TOW REASON<select id="towReason"><option>Arrest / Vehicle Seizure</option><option>Traffic Collision</option><option>Abandoned Vehicle</option><option>Illegal Parking</option><option>Disabled Vehicle</option><option>Unsafe Vehicle</option><option>Evidence Hold</option><option>Other</option></select></label><label>PRIORITY<select id="towPriority"><option value="ROUTINE">Routine</option><option value="URGENT">Urgent</option><option value="EMERGENCY">Emergency</option></select></label><label>LOCATION<input id="towLocation" placeholder="e.g. Sandy Shores Sheriff's Office"></label><label>REQUESTING AGENCY<select id="towAgency"><option>BCSO</option><option>LSPD</option><option>SAHP</option><option>FIB</option><option>Other</option></select></label><label>OFFICER / CALLSIGN<input id="towOfficer" placeholder="e.g. O. Smith 5372"></label><label>DESTINATION<select id="towDestination"><option>Nearest DOT Impound</option><option>Sandy Shores Impound</option><option>Los Santos Impound</option><option>Paleto Bay Impound</option><option>Scene Removal Only</option></select></label><label class="wide">ADDITIONAL NOTES<textarea id="towNotes" rows="4"></textarea></label></div><div id="towError" class="error"></div><button class="gold police-submit" onclick="submitTow()">TRANSMIT TOW REQUEST →</button><div class="track-existing"><span>Already submitted a request?</span><div><input id="existingTowRef" placeholder="TR-000000" maxlength="12"><button type="button" onclick="trackExistingTow()">TRACK EXISTING REQUEST →</button></div><small id="existingTowError"></small></div></section><section id="towSuccess" class="tow-success hidden"><div class="success">✓</div><h2 id="towRef">TR-0000</h2><p>Request transmitted to DOT Operations.</p><div class="receiptbox"><div><span>REGISTRATION</span><b id="successPlate"></b></div><div><span>PRIORITY</span><b id="successPriority"></b></div><div><span>STATUS</span><b class="goldtext">AWAITING DOT UNIT</b></div></div></section>
+<section id="towTransmit" class="tow-transmit hidden" aria-live="polite">
+  <div class="transmit-terminal">
+    <div class="transmit-icon">◈</div>
+    <div class="eyebrow">SA DOT SECURE DISPATCH LINK</div>
+    <h2 id="transmitTitle">TRANSMITTING REQUEST...</h2>
+    <div class="transmit-bar"><i id="transmitBar"></i></div>
+    <div id="transmitLog" class="transmit-log"><span>Establishing secure connection...</span></div>
+  </div>
+</section>
+<section id="towTracker" class="tow-tracker hidden">
+  <div class="tracker-top">
+    <button class="leo-back" onclick="stopTowTracking();openLeoService('home')">← LEO SERVICES</button>
+    <button class="tracker-refresh" onclick="refreshTowTracking(true)">↻ REFRESH STATUS</button>
+  </div>
+  <div class="tracker-hero">
+    <div><div class="eyebrow">SA DOT · LIVE REQUEST TRACKING</div><h1 id="trackRef">TR-0000</h1><p id="trackHeadline">Awaiting DOT unit assignment.</p></div>
+    <div id="trackStatusBadge" class="track-badge pending">AWAITING DOT UNIT</div>
+  </div>
+  <div id="trackProgress" class="track-progress"></div>
+  <div class="tracker-grid">
+    <section class="tracker-card"><h3>REQUEST DETAILS</h3><dl id="trackDetails"></dl></section>
+    <section class="tracker-card"><h3>DOT RESPONSE</h3><dl id="trackDot"></dl></section>
+  </div>
+  <div id="trackFinal" class="track-final hidden"></div>
+  <div class="tracker-live"><i></i> LIVE LINK ACTIVE <span>Automatically checks DOT Operations every 5 seconds</span></div>
+</section>
+</section><section id="closureService" class="hidden"><button class="leo-back" onclick="openLeoService('home')">← LEO SERVICES</button><div class="police-hero compact closure-hero"><div class="eyebrow">TRAFFIC CONTROL SERVICES</div><h1>REQUEST ROAD CLOSURE</h1><p>Transmit a traffic-control request directly to DOT Operations.</p></div><section class="police-form-card"><div class="request-head"><div><div class="eyebrow">DOT TRAFFIC CONTROL</div><h2>ROAD CLOSURE REQUEST</h2></div><div class="request-status"><span></span> REQUEST FORM ONLINE</div></div><div class="formgrid police-grid"><label>LOCATION<input id="closureLocation" placeholder="e.g. Senora Freeway / Route 68"></label><label>CLOSURE TYPE<select id="closureType"><option>Full Road Closure</option><option>Single Lane Closure</option><option>Rolling Road Block</option><option>Intersection Closure</option><option>Traffic Control Only</option></select></label><label>REASON<select id="closureReason"><option>Traffic Collision</option><option>Police Incident</option><option>Road Hazard</option><option>Vehicle Recovery</option><option>Event / Planned Closure</option><option>Other</option></select></label><label>PRIORITY<select id="closurePriority"><option value="ROUTINE">Routine</option><option value="URGENT">Urgent</option><option value="EMERGENCY">Emergency</option></select></label><label>REQUESTING AGENCY<select id="closureAgency"><option>BCSO</option><option>LSPD</option><option>SAHP</option><option>FIB</option><option>Other</option></select></label><label>OFFICER / CALLSIGN<input id="closureOfficer" placeholder="e.g. O. Smith 5372"></label><label class="wide">ADDITIONAL NOTES<textarea id="closureNotes" rows="4" placeholder="Lanes affected, scene access, hazards, estimated duration..."></textarea></label></div><div id="closureError" class="error"></div><button class="gold police-submit" onclick="submitClosure()">TRANSMIT ROAD CLOSURE REQUEST →</button></section><section id="closureSuccess" class="tow-success hidden"><div class="success">✓</div><h2 id="closureRef">RC-0000</h2><p>Road closure request transmitted to DOT Operations.</p></section></section><section id="dmvService" class="hidden"><button class="leo-back" onclick="openLeoService('home')">← LEO SERVICES</button><div class="police-hero compact"><div class="eyebrow">LAW ENFORCEMENT DMV LINK</div><h1>VEHICLE STATUS CHECK</h1><p>Enter a registration to check for an active San Andreas DOT impound record.</p></div><section class="plate-stage"><div class="sa-plate"><div class="plate-screw tl"></div><div class="plate-screw tr"></div><div class="plate-screw bl"></div><div class="plate-screw br"></div><div class="aug">OCT</div><div class="sa-script">San Andreas</div><div class="reg-sticker"><small>CA</small><b>2026</b><span>SA DOT</span></div><input id="dmvPlate" maxlength="10" placeholder="TYPE PLATE" autocomplete="off"><div class="exempt">SA EXEMPT</div></div></section><section class="dmv-console"><div class="eyebrow">SECURE DMV / DOT QUERY</div><button class="gold police-submit" onclick="runDmvCheck()">CHECK REGISTRATION →</button><div id="dmvResult" class="dmv-result hidden"></div></section></section><section id="releaseService" class="hidden leo-dot-release-page">
+<button class="leo-back" onclick="openLeoService('home')">← LEO SERVICES</button>
+<div class="release-hero"><div><div class="eyebrow">SA DOT · RESTRICTED LEO ACCESS</div><h1>Vehicle Releases</h1><p>Vehicles cleared for collection from San Andreas DOT impound facilities.</p></div><div class="release-lot">● &nbsp; LEO RELEASE TERMINAL<small>Release access only</small></div></div>
+<div id="leoReleaseStats" class="release-stats"></div>
+<div class="release-toolbar"><div class="impound-search"><span>⌕</span><input id="leoReleaseSearch" placeholder="Search plate, make, model or impound ID..." oninput="renderLeoReleases()"></div><button class="leo-refresh" onclick="loadLeoReleases()">↻ REFRESH</button></div>
+<div class="release-layout"><div><div class="release-list-head"><span>VEHICLE</span><span>PLATE</span><span>MAKE / MODEL</span><span>COLOUR</span><span>PAID</span><span>FEE</span><span></span></div><div id="leoReleaseRows" class="release-list"><div class="release-empty">Loading release queue...</div></div></div><aside id="leoReleaseDetail" class="release-detail"><div class="release-empty">Select a vehicle ready for collection.</div></aside></div>
+</section></main><footer>SAN ANDREAS DEPARTMENT OF TRANSPORTATION <span>•</span> LAW ENFORCEMENT SERVICES</footer><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=43530"></script><script src="police.js?v=43530"></script></body></html>

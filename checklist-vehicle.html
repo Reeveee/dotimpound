@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SA DOT Checklist Vehicle</title>
+<style>
+:root{--amber:#f5a524;--green:#59d083;--red:#e26464;--muted:#7f929e}
+*{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#081015;color:#e9eef1;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:5}
+.hud-top{position:absolute;left:12px;right:12px;top:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.unit-card,.state-card{background:rgba(6,12,16,.78);border:1px solid #2b3b45;border-radius:10px;backdrop-filter:blur(7px);box-shadow:0 8px 24px #0005}
+.unit-card{padding:8px 10px;display:grid;gap:2px;max-width:72%}
+.unit-card small,.state-card small{font-size:7px;font-weight:900;letter-spacing:1px;color:#718692;text-transform:uppercase}
+.unit-card b{font-size:10px;letter-spacing:.3px;color:#f2f6f8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.state-card{padding:8px 10px;text-align:right;min-width:84px}
+.state-card b{display:block;margin-top:2px;font-size:9px;letter-spacing:.8px;color:#9eb0ba}
+#state.pass b{color:var(--green)} #state.issue b{color:var(--red)} #state.testing b{color:var(--amber)}
+#state.pass{border-color:#2d6b43} #state.issue{border-color:#6d3535} #state.testing{border-color:#80672d}
+.hud-bottom{position:absolute;left:12px;right:12px;bottom:9px;display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.system{padding:7px 9px;border-radius:8px;background:rgba(6,12,16,.74);border:1px solid #263640;min-width:0;max-width:72%}
+.system small{display:block;font-size:6px;color:#6f8490;letter-spacing:.9px;font-weight:900}
+.system b{display:block;margin-top:2px;font-size:8px;color:#dce5e9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hint{font-size:7px;color:#677a86;text-align:right;line-height:1.4;text-shadow:0 1px 2px #000}
+.scan{position:absolute;inset:0;border:1px solid transparent;box-shadow:inset 0 0 0 0 transparent;transition:.25s}
+#hud.testing .scan{border-color:#f5a52455;box-shadow:inset 0 0 35px #f5a52412;animation:scanPulse 1.2s ease-in-out infinite}
+#hud.pass .scan{border-color:#59d08345;box-shadow:inset 0 0 24px #59d0830e}
+#hud.issue .scan{border-color:#e264644c;box-shadow:inset 0 0 28px #e2646411}
+@keyframes scanPulse{50%{box-shadow:inset 0 0 55px #f5a52425}}
+.scanline{position:absolute;left:0;right:0;top:-30%;height:28%;background:linear-gradient(180deg,transparent,#f5a52413,transparent);opacity:0}
+#hud.testing .scanline{opacity:1;animation:scanline 1.15s linear infinite}
+@keyframes scanline{to{top:105%}}
+.controls{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:grid;gap:6px;pointer-events:auto}
+.controls button{width:31px;height:31px;border-radius:8px;border:1px solid #2d3d47;background:rgba(8,15,20,.82);color:#9cafba;font-size:11px;cursor:pointer;backdrop-filter:blur(5px)}
+.controls button:hover{border-color:var(--amber);color:var(--amber)}
+</style>
+</head>
+<body>
+<div id="hud">
+  <div class="scan"></div><div class="scanline"></div>
+  <div class="hud-top">
+    <div class="unit-card"><small>SA DOT 3D VEHICLE</small><b id="vehicleName">DOT PICKUP · H361</b></div>
+    <div id="state" class="state-card"><small>DIAGNOSTIC</small><b>READY</b></div>
+  </div>
+  <div class="controls">
+    <button id="resetView" title="Reset view">⌂</button>
+    <button id="toggleOrbit" title="Toggle auto orbit">↻</button>
+  </div>
+  <div class="hud-bottom">
+    <div class="system"><small>CURRENT SYSTEM</small><b id="systemName">AWAITING TEST</b></div>
+    <div class="hint">DRAG TO ORBIT<br>WHEEL TO ZOOM</div>
+  </div>
+</div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+/* ---------- viewer ---------- */
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
+document.body.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0d0f12);
+scene.fog=new THREE.Fog(0x0d0f12,26,60);
+scene.environment=new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(),0.04).texture;
+
+const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.1,200);
+camera.position.set(7.4,3.2,7.4);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.target.set(-0.2,1.1,0); controls.enableDamping=true; controls.dampingFactor=.07;
+controls.minDistance=3.4; controls.maxDistance=26; controls.maxPolarAngle=Math.PI*.495;
+controls.autoRotate=true; controls.autoRotateSpeed=1.0;
+
+const key=new THREE.DirectionalLight(0xffffff,2.6);
+key.position.set(7,11,5); key.castShadow=true;
+key.shadow.mapSize.set(2048,2048); key.shadow.bias=-0.0003; key.shadow.normalBias=.02;
+Object.assign(key.shadow.camera,{left:-7,right:7,top:7,bottom:-7,near:2,far:30});
+scene.add(key);
+const rim=new THREE.DirectionalLight(0xbcd0ff,1.1); rim.position.set(-8,5,-7); scene.add(rim);
+const fill=new THREE.HemisphereLight(0xd7e8ff,0x17202a,.85); scene.add(fill);
+
+const ground=new THREE.Mesh(new THREE.CircleGeometry(50,64),new THREE.MeshStandardMaterial({color:0x141619,roughness:.96}));
+ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
+const grid=new THREE.GridHelper(80,80,0x2b3036,0x1c2025);
+grid.position.y=.02; grid.material.transparent=true; grid.material.opacity=.4; scene.add(grid);
+
+/* ---------- helpers ---------- */
+const truck=new THREE.Group(); truck.name='SADOT_F250_RoadsideAssistance'; scene.add(truck);
+function B(w,h,d,m,x,y,z,p=truck,ry=0,rz=0){
+  const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);
+  o.position.set(x,y,z); o.rotation.set(0,ry,rz);
+  o.castShadow=o.receiveShadow=true; p.add(o); return o;}
+function CY(r1,r2,h,m,x,y,z,p=truck,seg=20,axis='y'){
+  const o=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,seg),m);
+  if(axis==='z')o.rotation.x=Math.PI/2; if(axis==='x')o.rotation.z=Math.PI/2;
+  o.position.set(x,y,z); o.castShadow=o.receiveShadow=true; p.add(o); return o;}
+function decal(w,h,t,x,y,z,ry,p=truck){
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),
+    new THREE.MeshStandardMaterial({map:t,transparent:true,roughness:.5,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
+  m.position.set(x,y,z); m.rotation.y=ry; m.receiveShadow=true; p.add(m); return m;}
+const std=(c,r=.5,mt=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:mt});
+const lamp=(e,b,i)=>{const m=new THREE.MeshStandardMaterial({color:b,emissive:e,emissiveIntensity:i,roughness:.4,metalness:.1});m.userData={on:i,off:.03};return m;};
+
+/* pre-flipped canvas textures (survive GLB export upright in any viewer) */
+function tex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;
+  const g=c.getContext('2d');g.translate(0,h);g.scale(1,-1);draw(g,w,h);
+  const t=new THREE.CanvasTexture(c);t.flipY=false;t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t;}
+function dots(g,cx,cy,r,gap,fill='#cf2b23'){g.fillStyle=fill;
+  g.beginPath();g.arc(cx,cy-gap,r,0,7);g.fill();
+  g.beginPath();g.arc(cx-gap,cy+gap*.6,r,0,7);g.fill();
+  g.beginPath();g.arc(cx+gap,cy+gap*.6,r,0,7);g.fill();}
+function chev(g,x0,wd,hh){g.save();g.beginPath();g.rect(x0,0,wd,hh);g.clip();
+  const s=112;for(let k=-3;k*s<wd+hh;k++){g.fillStyle=k%2?'#f3b70b':'#cf2b23';const bx=x0+k*s;
+    g.beginPath();g.moveTo(bx,0);g.lineTo(bx+s,0);g.lineTo(bx+s-hh,hh);g.lineTo(bx-hh,hh);g.closePath();g.fill();}g.restore();}
+
+/* ---------- livery textures ---------- */
+const texDoor=tex(1024,512,g=>{
+  g.fillStyle='#101c2c';g.font='italic 700 60px Georgia,serif';g.textAlign='left';
+  g.fillText('San Andreas',36,140);
+  g.save();g.translate(28,352);g.transform(1,0,-.14,1,0,0);
+  g.fillStyle='#2f9e41';g.font='900 200px Arial,sans-serif';g.fillText('DOT',0,0);g.restore();
+  g.fillStyle='#1b2b3c';g.font='600 30px Arial';g.fillText('Department of Transportation',40,398);
+  g.textAlign='right';g.lineWidth=18;g.strokeStyle='rgba(255,255,255,.92)';g.font='italic 900 62px Arial';
+  g.strokeText('SAFETY PATROL',992,180);g.fillStyle='#1d4f9e';g.fillText('SAFETY PATROL',992,180);
+});
+const texSF=tex(1024,384,g=>{
+  g.textAlign='center';g.letterSpacing='20px';
+  g.fillStyle='#c8102e';g.font='italic 900 132px Arial';g.fillText('SAN ANDREAS DOT',512,150);
+  g.fillStyle='#23262a';g.font='800 76px Arial';g.fillText('SAFETY PATROL',512,282);
+});
+const texRear=tex(2048,400,g=>{
+  g.fillStyle='#efefeb';g.fillRect(0,0,2048,400);
+  chev(g,0,540,400);chev(g,1508,540,400);
+  g.strokeStyle='#17181a';g.lineWidth=10;g.strokeRect(5,5,2038,390);
+  g.textAlign='center';g.letterSpacing='6px';g.fillStyle='#1b1d20';
+  g.font='800 54px Arial';g.fillText('VEHICLE STOPS FREQUENTLY',1024,80);
+  g.letterSpacing='0px';g.fillStyle='#c8102e';g.font='italic 900 112px Arial';g.fillText('SAN ANDREAS DOT',1024,212);
+  g.letterSpacing='14px';g.fillStyle='#23262a';g.font='800 66px Arial';g.fillText('SAFETY PATROL',1024,300);
+  g.letterSpacing='2px';g.fillStyle='#f7c600';g.strokeStyle='#17181a';g.lineWidth=4;
+  g.fillRect(724,330,600,52);g.strokeRect(724,330,600,52);
+  g.fillStyle='#141414';g.font='700 23px Arial';
+  g.fillText('CAUTION — THIS VEHICLE MAKES FREQUENT STOPS',1024,364);
+  dots(g,600,190,16,44);dots(g,1448,190,16,44);
+});
+const texBoardF=tex(1024,512,g=>{
+  g.fillStyle='#f4f4f1';g.fillRect(0,0,1024,512);
+  g.strokeStyle='#17181a';g.lineWidth=14;g.strokeRect(9,9,1006,494);
+  dots(g,512,134,32,84);
+  g.fillStyle='#cf2b23';g.textAlign='center';g.font='900 168px "Arial Black",Arial,sans-serif';
+  g.fillText('SADOT',512,368);
+  g.fillStyle='#17181a';g.fillRect(322,398,380,8);
+  g.fillStyle='#23262a';g.letterSpacing='10px';g.font='800 44px Arial';g.fillText('SAN ANDREAS',512,462);
+  g.letterSpacing='2px';g.fillStyle='#565b62';g.font='700 28px Arial';g.fillText('DEPARTMENT OF TRANSPORTATION',512,498);
+});
+const LED_MSGS=['ACCIDENT\nAHEAD!\nSLOW DOWN','LEFT LANE\nCLOSED\nAHEAD','ROAD WORK\nAHEAD\nMERGE >>'];
+function drawLED(g,msg){g.fillStyle='#070707';g.fillRect(0,0,1024,512);
+  const ls=msg.split('\n');
+  g.textAlign='center';g.textBaseline='middle';
+  g.shadowColor='#ff9d00';g.shadowBlur=30;g.fillStyle='#ffb43a';
+  g.font='900 100px Consolas,Menlo,monospace';
+  const y0=256-(ls.length-1)*75;
+  ls.forEach((s,i)=>g.fillText(s,512,y0+i*150));
+  g.shadowBlur=0;g.strokeStyle='rgba(0,0,0,.85)';g.lineWidth=3;g.beginPath();
+  for(let x=0;x<=1024;x+=10){g.moveTo(x,0);g.lineTo(x,512);}
+  for(let y=0;y<=512;y+=10){g.moveTo(0,y);g.lineTo(1024,y);}
+  g.stroke();g.strokeStyle='#000';g.lineWidth=28;g.strokeRect(0,0,1024,512);}
+const texLEDs=LED_MSGS.map(m=>tex(1024,512,g=>drawLED(g,m)));
+const texUnit=tex(256,128,g=>{g.fillStyle='#17191c';g.textAlign='center';g.font='800 88px Arial';g.fillText('H361',128,100);});
+
+/* ---------- materials ---------- */
+const mat={orange:std(0xf5820b,.38,.1),white:std(0xf1f2ee,.45),white2:std(0xf8f8f5,.5),
+  black:std(0x15171a,.55,.35),steel:std(0x1d2024,.5,.6),
+  glass:new THREE.MeshStandardMaterial({color:0x0e141b,roughness:.12,metalness:.75}),
+  chrome:new THREE.MeshStandardMaterial({color:0xd8dbde,roughness:.18,metalness:1}),
+  alu:std(0xb9bdc2,.35,.85),tire:std(0x131313,.95),rim:std(0xcfd3d8,.22,1),
+  plate:std(0xe9e9e5,.5),blue:std(0x1d3f8f,.35,.3),red:std(0xb3271c,.5),cone:std(0xe06a10,.6)};
+const L={head:lamp(0xfff3cf,0x2b2b24,2.4),fog:lamp(0xffedc2,0x2b2b24,1.4),
+  amber:lamp(0xffa51e,0x241703,2.1),red:lamp(0xff2f22,0x2a0705,1.9),
+  beaconA:lamp(0xffa51e,0x241703,2.6),beaconB:lamp(0xffa51e,0x241703,2.6)};
+const matBoardF=new THREE.MeshStandardMaterial({map:texBoardF,roughness:.5});
+const matLED=new THREE.MeshStandardMaterial({color:0x030303,map:texLEDs[0],emissive:0xffffff,emissiveMap:texLEDs[0],emissiveIntensity:1.9,roughness:.6});
+
+/* ---------- chassis ---------- */
+const gCh=new THREE.Group();gCh.name='Chassis';truck.add(gCh);
+B(5.6,.2,.09,mat.black,-.25,.70,.42,gCh);B(5.6,.2,.09,mat.black,-.25,.70,-.42,gCh);
+[-2.6,-.6,1.6].forEach(x=>B(.1,.14,.84,mat.black,x,.70,0,gCh));
+B(1.05,.26,.5,mat.black,-.45,.76,.62,gCh);
+B(.5,.28,.42,mat.black,-.45,.77,-.62,gCh);
+
+/* ---------- cab ---------- */
+const gCab=new THREE.Group();gCab.name='Cab';truck.add(gCab);
+B(2.05,.60,2.05,mat.orange,1.475,1.22,0,gCab);
+B(.72,.34,1.88,mat.orange,2.86,1.15,0,gCab);
+B(.06,.30,1.50,mat.black,3.25,1.13,0,gCab);
+[1.03,1.13,1.23].forEach(y=>B(.015,.025,1.46,mat.chrome,3.284,y,0,gCab));
+B(.012,.09,.24,mat.blue,3.288,1.13,0,gCab);
+B(.05,.26,.34,L.head,3.25,1.13,.93,gCab);B(.05,.26,.34,L.head,3.25,1.13,-.93,gCab);
+B(.05,.15,1.92,mat.black,3.24,.92,0,gCab);
+B(.24,.26,2.08,mat.black,3.33,.73,0,gCab);
+B(.012,.14,.32,mat.plate,3.455,.73,0,gCab);
+B(.03,.09,.16,L.fog,3.452,.70,.72,gCab);B(.03,.09,.16,L.fog,3.452,.70,-.72,gCab);
+CY(.034,.034,1.92,mat.steel,3.52,1.03,0,gCab,20,'z');
+CY(.03,.03,1.9,mat.steel,3.52,.84,0,gCab,20,'z');
+[.9,.45,-.45,-.9].forEach(z=>CY(.028,.028,.46,mat.steel,3.52,.84,z,gCab,12,'y'));
+B(.12,.26,.03,mat.steel,3.46,.84,.95,gCab);B(.12,.26,.03,mat.steel,3.46,.84,-.95,gCab);
+B(.03,.08,.08,L.amber,3.55,1.03,.6,gCab);B(.03,.08,.08,L.amber,3.55,1.03,-.6,gCab);
+B(1.67,.46,1.90,mat.orange,1.285,1.75,0,gCab);
+B(1.74,.07,1.96,mat.orange,1.285,2.005,0,gCab);
+B(.61,.045,1.86,mat.glass,2.32,1.75,0,gCab,0,2.288);           // windshield
+[1.77,1.07].forEach(x=>{B(.62,.32,.02,mat.glass,x,1.76,.958,gCab);B(.62,.32,.02,mat.glass,x,1.76,-.958,gCab);});
+B(.02,.32,1.46,mat.glass,.445,1.76,0,gCab);
+[1.42,.72].forEach(x=>{B(.014,.6,.012,mat.black,x,1.22,1.03,gCab);B(.014,.6,.012,mat.black,x,1.22,-1.03,gCab);});
+[1.99,1.32].forEach(x=>{B(.17,.04,.02,mat.black,x,1.42,1.032,gCab);B(.17,.04,.02,mat.black,x,1.42,-1.032,gCab);});
+[1,-1].forEach(s=>{
+  B(.05,.06,.16,mat.black,2.30,1.74,s*1.03,gCab);
+  B(.10,.30,.17,mat.black,2.30,1.70,s*1.145,gCab);
+  B(.05,.035,.12,L.amber,2.30,1.868,s*1.145,gCab);});
+B(.95,.06,1.70,mat.black,1.55,2.07,0,gCab);
+for(let i=0;i<6;i++)B(.13,.055,.22,i%2?L.beaconB:L.beaconA,1.55,2.12,-.75+i*.30,gCab);
+CY(.008,.008,1.3,mat.black,2.60,1.97,.92,gCab,8,'y');
+CY(.008,.008,1.3,mat.black,2.60,1.97,-.92,gCab,8,'y');
+decal(1.05,.52,texDoor,1.42,1.17,1.029,0,gCab);
+decal(1.05,.52,texDoor,1.42,1.17,-1.029,Math.PI,gCab);
+decal(.30,.14,texUnit,2.84,1.16,.944,0,gCab);
+decal(.30,.14,texUnit,2.84,1.16,-.944,Math.PI,gCab);
+
+/* ---------- utility body ---------- */
+const gBd=new THREE.Group();gBd.name='UtilityBody';truck.add(gBd);
+B(3.60,.50,2.35,mat.white,-1.35,1.23,0,gBd);
+B(3.60,.05,.06,mat.black,-1.35,1.505,1.165,gBd);B(3.60,.05,.06,mat.black,-1.35,1.505,-1.165,gBd);
+[1,-1].forEach(s=>{
+  [[-2.55,.86],[-1.59,.86],[-.63,.86],[.15,.52]].forEach(([cx,wd])=>{
+    B(wd,.38,.02,mat.white2,cx,1.17,s*1.176,gBd);
+    CY(.022,.022,.035,mat.chrome,cx+wd*.32,1.17,s*1.19,gBd,12,'z');});});
+decal(2.25,.46,texRear,-3.156,1.22,0,-Math.PI/2,gBd);
+[-.85,-.40,.40,.85].forEach(z=>B(.05,.05,.16,L.amber,-3.152,1.50,z,gBd));
+[1,-1].forEach(s=>{
+  B(.06,.12,.20,L.red,-3.152,1.05,s*.97,gBd);
+  B(.06,.10,.16,L.amber,-3.152,1.05,s*.70,gBd);
+  B(.06,.09,.14,mat.plate,-3.152,1.05,s*.47,gBd);
+  B(.05,.05,.06,L.amber,.455,1.50,s*1.15,gBd);
+  B(.24,.035,.40,mat.black,-3.29,.795,s*.72,gBd);
+  B(.02,.34,.30,mat.black,-2.42,.72,s*.78,gBd);});
+B(.24,.24,2.30,mat.alu,-3.29,.66,0,gBd);
+B(.012,.14,.32,mat.plate,-3.418,.66,0,gBd);
+/* deck cargo: cone + jerrycan */
+B(.30,.035,.30,mat.cone,-1.55,1.4975,.45,gBd);
+const cone=new THREE.Mesh(new THREE.ConeGeometry(.14,.38,20),mat.cone);
+cone.position.set(-1.55,1.705,.45);cone.castShadow=cone.receiveShadow=true;gBd.add(cone);
+CY(.078,.092,.075,std(0xf2f2ee,.5),-1.55,1.70,.45,gBd,16,'y');
+B(.26,.36,.18,mat.red,-1.12,1.66,-.55,gBd);
+B(.12,.035,.06,mat.red,-1.12,1.858,-.55,gBd);
+
+/* ---------- rack ---------- */
+const gRk=new THREE.Group();gRk.name='Rack';truck.add(gRk);
+[1,-1].forEach(s=>B(3.30,.08,.07,mat.steel,-1.35,1.55,s*1.05,gRk));
+[-2.95,-1.5,.28].forEach(x=>{B(.07,.14,.07,mat.steel,x,1.53,1.05,gRk);B(.07,.14,.07,mat.steel,x,1.53,-1.05,gRk);});
+B(.07,.08,2.10,mat.steel,.28,1.55,0,gRk);
+for(let i=0;i<6;i++)B(.14,.06,.20,i%2?L.beaconB:L.beaconA,.28,1.62,-.85+i*.34,gRk);
+B(.10,.34,.07,mat.steel,-2.95,1.65,.85,gRk);B(.10,.34,.07,mat.steel,-2.95,1.65,-.85,gRk);
+CY(.022,.022,1.74,mat.chrome,-2.95,1.70,0,gRk,10,'z');
+
+/* ---------- message board (pivots: 0 = deployed, -1.35 = stowed) ---------- */
+const gMB=new THREE.Group();gMB.name='MessageBoard';gMB.position.set(-2.95,1.70,0);truck.add(gMB);
+B(.12,.12,.04,mat.steel,0,.02,.85,gMB);B(.12,.12,.04,mat.steel,0,.02,-.85,gMB);
+B(.07,1.15,2.24,mat.black,0,.575,0,gMB);
+const pf=new THREE.Mesh(new THREE.PlaneGeometry(2.18,1.09),matBoardF);
+pf.position.set(.043,.575,0);pf.rotation.y=Math.PI/2;pf.receiveShadow=true;gMB.add(pf);
+const pl=new THREE.Mesh(new THREE.PlaneGeometry(2.18,1.09),matLED);
+pl.position.set(-.043,.575,0);pl.rotation.y=-Math.PI/2;pl.receiveShadow=true;gMB.add(pl);
+let boardTarget=0;
+
+/* ---------- wheels & details ---------- */
+const gWh=new THREE.Group();gWh.name='Wheels';truck.add(gWh);
+function wheel(x,z,n){const g=new THREE.Group();g.name=n;g.position.set(x,.45,z);
+  const t=new THREE.Mesh(new THREE.CylinderGeometry(.45,.45,.315,28),mat.tire);t.rotation.x=Math.PI/2;
+  const r=new THREE.Mesh(new THREE.CylinderGeometry(.255,.255,.325,24),mat.rim);r.rotation.x=Math.PI/2;
+  const h=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.34,16),mat.chrome);h.rotation.x=Math.PI/2;
+  [t,r,h].forEach(o=>{o.castShadow=o.receiveShadow=true;g.add(o);});gWh.add(g);}
+wheel(2.25,.78,'Wheel_FL');wheel(2.25,-.78,'Wheel_FR');
+wheel(-1.85,.78,'Wheel_RL');wheel(-1.85,-.78,'Wheel_RR');
+const gDt=new THREE.Group();gDt.name='Details';truck.add(gDt);
+[1,-1].forEach(s=>{CY(.035,.035,1.8,mat.black,1.45,.70,s*1.02,gDt,12,'x');
+  B(.04,.22,.03,mat.black,.95,.81,s*1.01,gDt);B(.04,.22,.03,mat.black,1.95,.81,s*1.01,gDt);});
+
+
+
+/* checklist-specific 3D additions */
+const gFlat=new THREE.Group(); gFlat.name='FlatbedBody'; truck.add(gFlat);
+B(3.75,.15,2.20,mat.steel,-1.35,.91,0,gFlat);
+B(3.55,.05,2.04,mat.alu,-1.28,1.01,0,gFlat);
+B(.10,.38,2.14,mat.steel,-3.14,1.18,0,gFlat);
+[-2.92,-2.1,-1.3,-.5,.28].forEach(x=>{
+  B(.06,.12,.08,L.amber,x,1.10,1.06,gFlat);B(.06,.12,.08,L.amber,x,1.10,-1.06,gFlat);
+});
+B(.16,.22,2.24,mat.black,-3.28,.72,0,gFlat);
+B(.06,.08,.22,L.red,-3.37,.90,.86,gFlat);B(.06,.08,.22,L.red,-3.37,.90,-.86,gFlat);
+gFlat.visible=false;
+
+let lightsOn=true,deployed=true,ledIdx=0;
+function setLights(v){
+  lightsOn=v;
+  [L.head,L.fog,L.amber,L.red].forEach(m=>m.emissiveIntensity=v?m.userData.on:m.userData.off);
+  matLED.emissiveIntensity=v?1.9:.04;
+  if(!v){L.beaconA.emissiveIntensity=.03;L.beaconB.emissiveIntensity=.03;}
+}
+setLights(true);
+
+const hud=document.getElementById('hud');
+const stateCard=document.getElementById('state');
+const vehicleName=document.getElementById('vehicleName');
+const systemName=document.getElementById('systemName');
+let currentVehicle='DOT Pickup';
+let cameraGoal=new THREE.Vector3(7.4,3.2,7.4);
+let targetGoal=new THREE.Vector3(-.2,1.1,0);
+let cameraTween=false;
+const views={
+  tyres:[[.4,2.3,9.5],[-.4,1.0,0]],
+  lights:[[9.7,2.0,.05],[1.0,1.15,0]],
+  brakes:[[-9.2,2.1,.1],[-1.1,1.0,0]],
+  fluids:[[6.7,3.1,5.3],[1.1,1.15,0]],
+  body:[[7.4,3.2,7.4],[-.2,1.1,0]],
+  tow:[[-9.2,2.1,.05],[-1.7,1.0,0]],
+  safety:[[-5.3,3.6,5.9],[-1.4,1.35,0]],
+  radio:[[5.3,2.8,4.8],[1.45,1.45,0]],
+  cab:[[6.4,2.7,4.2],[1.55,1.3,0]],
+  fuel:[[.5,2.15,9.2],[-.8,1.0,0]]
+};
+function focusView(key){
+  const v=views[key]||views.body;
+  cameraGoal.set(...v[0]);targetGoal.set(...v[1]);cameraTween=true;controls.autoRotate=false;
+}
+function resetView(){cameraGoal.set(7.4,3.2,7.4);targetGoal.set(-.2,1.1,0);cameraTween=true;}
+function setVehicleVariant(name){
+  currentVehicle=name||'DOT Pickup';vehicleName.textContent=currentVehicle.toUpperCase()+' · H361';
+  const flat=/flatbed/i.test(currentVehicle);
+  gBd.visible=!flat;gRk.visible=!flat;gMB.visible=!flat;gFlat.visible=flat;
+  gFlat.scale.set(1,1,1);
+  if(/heavy flatbed/i.test(currentVehicle))gFlat.scale.set(1.06,1.04,1.04);
+  if(/commercial flatbed/i.test(currentVehicle))gFlat.scale.set(1.11,1.02,1.06);
+  if(/large flatbed/i.test(currentVehicle))gFlat.scale.set(1.18,1.03,1.08);
+}
+function setDiagnostic(msg){
+  const testing=!!msg.testing,state=msg.state||'',system=msg.title||msg.system||'AWAITING TEST';
+  hud.classList.remove('testing','pass','issue');stateCard.classList.remove('testing','pass','issue');
+  let label='READY';
+  if(testing){label='SCANNING';hud.classList.add('testing');stateCard.classList.add('testing');focusView(msg.system)}
+  else if(state==='pass'){label='PASS';hud.classList.add('pass');stateCard.classList.add('pass')}
+  else if(state==='issue'){label='ISSUE';hud.classList.add('issue');stateCard.classList.add('issue')}
+  else if(msg.tested)label='TESTED';
+  stateCard.querySelector('b').textContent=label;
+  systemName.textContent=String(system).toUpperCase();
+  if(msg.vehicle)setVehicleVariant(msg.vehicle);
+}
+addEventListener('message',e=>{const d=e.data||{};if(d.type==='sadotChecklistVehicle')setDiagnostic(d)});
+document.getElementById('resetView').onclick=()=>resetView();
+document.getElementById('toggleOrbit').onclick=()=>{controls.autoRotate=!controls.autoRotate;cameraTween=false};
+renderer.domElement.addEventListener('pointerdown',()=>{cameraTween=false;controls.autoRotate=false});
+setVehicleVariant(currentVehicle);
+
+const clock=new THREE.Clock();
+renderer.setAnimationLoop(()=>{
+  const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;
+  gMB.rotation.z+=(boardTarget-gMB.rotation.z)*Math.min(1,dt*4);
+  if(lightsOn){const ph=Math.sin(t*9)>=0;L.beaconA.emissiveIntensity=ph?3.4:.35;L.beaconB.emissiveIntensity=ph?.35:3.4;}
+  if(cameraTween){
+    camera.position.lerp(cameraGoal,Math.min(1,dt*4.5));
+    controls.target.lerp(targetGoal,Math.min(1,dt*5));
+    if(camera.position.distanceTo(cameraGoal)<.04)cameraTween=false;
+  }
+  controls.update();renderer.render(scene,camera);
+});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+</script>
+</body>
+</html>
